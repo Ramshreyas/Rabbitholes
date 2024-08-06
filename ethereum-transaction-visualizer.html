@@ -143,9 +143,9 @@
 
             d3.select("#visualization").selectAll("*").remove();
 
-            const gridPositions = assignGridPositions("User");
+            const gridPositions = assignGridPositions(nodeIds[0]);
 
-            const nodes = nodeIds.map(id => ({
+            let nodes = nodeIds.map(id => ({
                 id: id,
                 x: (gridPositions[id][0] + 2) * gridSize,
                 y: (gridPositions[id][1] + 2) * gridSize
@@ -262,6 +262,9 @@
                 }
 
                 currentNode = { id: newNodeId, x: currentNode.x, y: currentNode.y };
+                //Update the nodes object
+                nodes = nodes.map(n => n.id === oldNodeId ? currentNode : n);
+                console.log(nodes);
             } else {
                 nodeMetadata[newNodeId] = newMetadata;
             }
