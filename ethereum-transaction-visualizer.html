@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ethereum Transaction Lifecycle Visualizer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+        body, html { 
+            margin: 0; 
+            padding: 0; 
+            width: 100%; 
+            height: 100%; 
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        #visualization { 
+            width: 100%; 
+            height: 100%; 
+        }
+        #controls { 
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 150px; 
+            height: 150px; 
+        }
+        .control-button { 
+            position: absolute; 
+            width: 60px; 
+            height: 30px; 
+            background-color: rgba(255, 255, 255, 0.7);
+            border: 1px solid #999;
+            border-radius: 5px;
+        }
+        #upBtn { top: 0; left: 45px; }
+        #leftBtn { top: 60px; left: 0; }
+        #rightBtn { top: 60px; right: 0; }
+        #downBtn { bottom: 0; left: 45px; }
+        #metadata, #addNodeForm {
+            position: fixed;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 5px;
+            max-width: 300px;
+            max-height: 80%;
+            overflow-y: auto;
+        }
+        #metadata {
+            bottom: 20px;
+            left: 20px;
+        }
+        #addNodeForm {
+            top: 20px;
+            left: 20px;
+            display: none;  /* Initially hidden */
+        }
+        #metadata input, #metadata textarea, #addNodeForm input, #addNodeForm select {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        #metadata button, #addNodeForm button {
+            margin-right: 10px;
+        }
+        #editToggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="visualization"></div>
+    <div id="controls">
+        <button id="upBtn" class="control-button">Up</button>
+        <button id="leftBtn" class="control-button">Previous</button>
+        <button id="rightBtn" class="control-button">Next</button>
+        <button id="downBtn" class="control-button">Down</button>
+    </div>
+    <div id="metadata"></div>
+    <div id="addNodeForm">
+        <h3>Add New Node</h3>
+        <input type="text" id="newNodeName" placeholder="Node Name">
+        <select id="newNodeDirection">
+            <option value="next">Next</option>
+            <option value="up">Up</option>
+            <option value="down">Down</option>
+        </select>
+        <button onclick="addNewNode()">Add Node</button>
+    </div>
+    <button id="editToggle" onclick="toggleEditMode()">Edit Mode</button>
+
+    <script>
+        let nodeIds = ["User"];
+        let connectionMatrix = {
+            "User": {}
+        };
+        let nodeMetadata = {
+            "User": {
+                "content": "Initiates and signs transaction",
+                "url": "https://ethereum.org/en/developers/docs/transactions/"
+            }
+        };
+
+        const directionToGridDelta = {
+            "next": [1, 0],
+            "previous": [-1, 0],
+            "up": [0, -1],
+            "down": [0, 1]
+        };
+
+        let isEditMode = false;
+
+        function assignGridPositions(startNode) {
+            const gridPositions = {};
+            const queue = [[startNode, 0, 0]];
+            const visited = new Set();
+
+            while (queue.length > 0) {
+                const [node, x, y] = queue.shift();
+                if (visited.has(node)) continue;
+                visited.add(node);
+                gridPositions[node] = [x, y];
+
+                for (let neighbor in connectionMatrix[node]) {
+                    const connection = connectionMatrix[node][neighbor];
+                    if (connection) {
+                        const [dx, dy] = directionToGridDelta[connection[0]];
+                        queue.push([neighbor, x + dx, y + dy]);
+                    }
+                }
+            }
+
+            return gridPositions;
+        }
+
+        function createVisualization() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            const nodeRadius = Math.min(width, height) * 0.05;
+            const transactionRadius = nodeRadius * 0.3;
+            const gridSize = Math.min(width, height) * 0.2;
+
+            d3.select("#visualization").selectAll("*").remove();
+
+            const gridPositions = assignGridPositions("User");
+
+            const nodes = nodeIds.map(id => ({
+                id: id,
+                x: (gridPositions[id][0] + 2) * gridSize,
+                y: (gridPositions[id][1] + 2) * gridSize
+            }));
+
+            const links = [];
+            for (let source in connectionMatrix) {
+                for (let target in connectionMatrix[source]) {
+                    if (connectionMatrix[source][target]) {
+                        links.push({
+                            source: nodes.find(n => n.id === source),
+                            target: nodes.find(n => n.id === target),
+                            type: connectionMatrix[source][target][0]
+                        });
+                    }
+                }
+            }
+
+            const svg = d3.select("#visualization")
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height);
+
+            const link = svg.append("g")
+                .selectAll("line")
+                .data(links)
+                .join("line")
+                .attr("stroke", "#999")
+                .attr("stroke-opacity", 0.6)
+                .attr("x1", d => d.source.x)
+                .attr("y1", d => d.source.y)
+                .attr("x2", d => d.target.x)
+                .attr("y2", d => d.target.y);
+
+            const node = svg.append("g")
+                .selectAll("circle")
+                .data(nodes)
+                .join("circle")
+                .attr("r", nodeRadius)
+                .attr("fill", "lightblue")
+                .attr("cx", d => d.x)
+                .attr("cy", d => d.y);
+
+            const label = svg.append("g")
+                .selectAll("text")
+                .data(nodes)
+                .join("text")
+                .text(d => d.id)
+                .attr("font-size", nodeRadius * 0.3)
+                .attr("text-anchor", "middle")
+                .attr("dominant-baseline", "central")
+                .attr("x", d => d.x)
+                .attr("y", d => d.y);
+
+            const transaction = svg.append("circle")
+                .attr("r", transactionRadius)
+                .attr("fill", "red");
+
+            return { nodes, transaction };
+        }
+
+        let { nodes, transaction } = createVisualization();
+        let currentNode = nodes[0];
+        transaction.attr("cx", currentNode.x).attr("cy", currentNode.y);
+
+        const directionMapping = {
+            "up": "up",
+            "down": "down",
+            "next": "right",
+            "previous": "left"
+        };
+
+        function updateMetadataDisplay(nodeId) {
+            const metadata = nodeMetadata[nodeId];
+            let html = `<h3><a href="${metadata.url}" target="_blank">${nodeId}</a></h3>`;
+            if (isEditMode) {
+                html += `
+                    <form id="metadataForm">
+                        <input type="text" id="nodeNameInput" value="${nodeId}">
+                        <textarea id="content" name="content" placeholder="Content">${metadata.content}</textarea>
+                        <input type="url" id="url" name="url" value="${metadata.url}" placeholder="URL">
+                        <button type="button" onclick="saveMetadata('${nodeId}')">Save</button>
+                        <button type="button" onclick="resetMetadata('${nodeId}')">Reset</button>
+                    </form>`;
+            } else {
+                html += `<p>${metadata.content}</p>`;
+            }
+            document.getElementById("metadata").innerHTML = html;
+        }
+
+        function saveMetadata(oldNodeId) {
+            const newNodeId = document.getElementById("nodeNameInput").value;
+            const content = document.getElementById("content").value;
+            const url = document.getElementById("url").value;
+            
+            const newMetadata = {
+                content: content,
+                url: url
+            };
+
+            if (oldNodeId !== newNodeId) {
+                nodeMetadata[newNodeId] = newMetadata;
+                delete nodeMetadata[oldNodeId];
+                nodeIds = nodeIds.map(id => id === oldNodeId ? newNodeId : id);
+                
+                // Update connectionMatrix
+                connectionMatrix[newNodeId] = connectionMatrix[oldNodeId];
+                delete connectionMatrix[oldNodeId];
+                for (let node in connectionMatrix) {
+                    if (connectionMatrix[node][oldNodeId]) {
+                        connectionMatrix[node][newNodeId] = connectionMatrix[node][oldNodeId];
+                        delete connectionMatrix[node][oldNodeId];
+                    }
+                }
+
+                currentNode = { id: newNodeId, x: currentNode.x, y: currentNode.y };
+            } else {
+                nodeMetadata[newNodeId] = newMetadata;
+            }
+
+            ({ nodes, transaction } = createVisualization());
+            transaction.attr("cx", currentNode.x).attr("cy", currentNode.y);
+            updateButtons();
+            updateMetadataDisplay(newNodeId);
+        }
+
+        function resetMetadata(nodeId) {
+            nodeMetadata[nodeId] = {
+                "content": "",
+                "url": ""
+            };
+            updateMetadataDisplay(nodeId);
+        }
+
+        function moveTransaction(direction) {
+            for (let targetId in connectionMatrix[currentNode.id]) {
+                const connection = connectionMatrix[currentNode.id][targetId];
+                if (connection && connection[0] === direction) {
+                    const targetNode = nodes.find(n => n.id === targetId);
+                    if (targetNode) {
+                        currentNode = targetNode;
+                        transaction.transition()
+                            .duration(500)
+                            .attr("cx", currentNode.x)
+                            .attr("cy", currentNode.y);
+                        updateButtons();
+                        updateMetadataDisplay(currentNode.id);
+                        break;
+                    }
+                }
+            }
+        }
+
+        function updateButtons() {
+            for (let direction in directionMapping) {
+                const buttonId = `#${directionMapping[direction]}Btn`;
+                let isEnabled = false;
+                for (let targetId in connectionMatrix[currentNode.id]) {
+                    const connection = connectionMatrix[currentNode.id][targetId];
+                    if (connection && connection[0] === direction) {
+                        isEnabled = true;
+                        break;
+                    }
+                }
+                d3.select(buttonId).property("disabled", !isEnabled);
+            }
+        }
+
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            updateMetadataDisplay(currentNode.id);
+            document.getElementById("editToggle").textContent = isEditMode ? "View Mode" : "Edit Mode";
+            document.getElementById("addNodeForm").style.display = isEditMode ? "block" : "none";
+        }
+
+        function addNewNode() {
+            const newNodeName = document.getElementById("newNodeName").value;
+            const direction = document.getElementById("newNodeDirection").value;
+            
+            if (!newNodeName || nodeIds.includes(newNodeName)) {
+                alert("Please enter a unique node name.");
+                return;
+            }
+
+            nodeIds.push(newNodeName);
+            connectionMatrix[newNodeName] = {};
+            nodeMetadata[newNodeName] = {
+                "content": "",
+                "url": ""
+            };
+
+            connectionMatrix[currentNode.id][newNodeName] = [direction, directionToGridDelta[direction]];
+            const oppositeDirection = direction === "next" ? "previous" : (direction === "up" ? "down" : "up");
+            connectionMatrix[newNodeName][currentNode.id] = [oppositeDirection, directionToGridDelta[oppositeDirection]];
+
+            ({ nodes, transaction } = createVisualization());
+            
+            // Move the transaction to the new node
+            currentNode = nodes.find(n => n.id === newNodeName);
+            transaction.transition()
+                .duration(500)
+                .attr("cx", currentNode.x)
+                .attr("cy", currentNode.y);
+
+            updateButtons();
+            updateMetadataDisplay(currentNode.id);
+
+            // Clear the input field
+            document.getElementById("newNodeName").value = "";
+        }
+
+        d3.select("#upBtn").on("click", () => moveTransaction("up"));
+        d3.select("#downBtn").on("click", () => moveTransaction("down"));
+        d3.select("#leftBtn").on("click", () => moveTransaction("previous"));
+        d3.select("#rightBtn").on("click", () => moveTransaction("next"));
+
+        updateButtons();
+        updateMetadataDisplay(currentNode.id);
+
+        window.addEventListener('resize', () => {
+            ({ nodes, transaction } = createVisualization());
+            currentNode = nodes.find(n => n.id === currentNode.id);
+            transaction.attr("cx", currentNode.x).attr("cy", currentNode.y);
+            updateButtons();
+            updateMetadataDisplay(currentNode.id);
+        });
+    </script>
+</body>
+</html>
