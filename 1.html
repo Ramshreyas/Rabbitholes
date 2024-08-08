@@ -69,14 +69,29 @@
         }
     </style>
 </head>
-<body>
-    <div id="Title">
+<body onload="onLoadPopulateNodesFromURl()">
+    <div id="Title", style="padding-left: 10px; padding-right: 10px;">
         <h1>Preconfirmations</h1>
     </div>
-    <div id="SubTitle">
-        <h2>The setting</h2>
-    <div id="Description">
-        <p>Click on the "Up", "Down", "Previous", and "Next" buttons to navigate through the Ethereum transaction lifecycle.</p>
+    <div id="Subtitle", style="padding-left: 10px; padding-right: 10px;">
+        <h2>The Setting</h2>
+    </div>
+    <div id="Content", style="padding-left: 10px; padding-right: 10px;">
+<p>Preconfirmations are a proposed mechanism for reducing time-to-confidence for users submitting transactions 
+to blockchains. Since blockchain users are contending for scarce blockspace in a permissionless manner, there is no fundamental
+guarantee that their transaction wil be included within a desired time interval, or with a specific post-execution state.</p>
+
+<p>When a user submits a transaction to Ethereum, they have an expectation that there will be an interval of time before they can be sure that the transaction has been included in the blockchain.</p>
+
+<p>In Ethereum, a block is produced every 12 seconds (<a href="https://ethos.dev/beacon-chain">one slot</a>), and so the shortest time interval for transaction inclusion is 12 seconds.</p> 
+
+<p>Beyond inclusion, there is the notion of finalization, which is the point at which the transaction is considered irreversible. In Ethereum, this is considered to occur after 2 epochs, where each 
+
+<a href="https://ethos.dev/beacon-chain">epoch</a> contains 32 slots of 12 seconds each. </p>
+
+<p>So from a user's perspective, a transaction goes through the following stages of certainty: <strong>Submission > Inclusion > Finalization </strong></p>
+
+<a href="2.html", style="float: right; padding-right: 10px;"> >>Next>> </a>
     </div>
     <div id="visualization"></div>
     <div id="controls">
@@ -236,8 +251,9 @@
                         <textarea id="content" name="content" placeholder="Content">${metadata.content}</textarea>
                         <input type="url" id="url" name="url" value="${metadata.url}" placeholder="URL">
                         <button type="button" onclick="saveMetadata('${nodeId}')">Save</button>
-                        <button type="button" onclick="resetMetadata('${nodeId}')">Reset</button>
                         <button type="button" onclick="deleteNode('${nodeId}')">Delete</button>
+                        <button type="button" onclick="uploadNodeData()">Upload</button>
+                        <button type="button" onclick="downloadNodeData()">Download</button>
                     </form>`;
             } else {
                 html += `<p>${metadata.content}</p>`;
@@ -404,6 +420,77 @@
             updateButtons();
             updateMetadataDisplay(currentNode.id);
         }
+
+        function downloadNodeData() {
+            const data = {
+                nodeIds: nodeIds,
+                connectionMatrix: connectionMatrix,
+                nodeMetadata: nodeMetadata
+            };
+            const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "preconfirmations.json";
+            a.click();
+        }
+
+        function uploadNodeData() {
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = ".json";
+            input.onchange = e => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = e => {
+                    const data = JSON.parse(e.target.result);
+                    nodeIds = data.nodeIds;
+                    connectionMatrix = data.connectionMatrix;
+                    nodeMetadata = data.nodeMetadata;
+                    ({ nodes, transaction } = createVisualization());
+                    currentNode = nodes[0];
+                    transaction.attr("cx", currentNode.x).attr("cy", currentNode.y);
+                    updateButtons();
+                    updateMetadataDisplay(currentNode.id);
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        function downloadNodeData() {
+            const data = {
+                nodeIds: nodeIds,
+                connectionMatrix: connectionMatrix,
+                nodeMetadata: nodeMetadata
+            };
+            const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "preconfirmations.json";
+            a.click();
+        }
+
+        function onLoadPopulateNodesFromURl() {
+            //Fetch json file from relative URL, check if it exists, if so populate the nodes
+            fetch('1.json')
+                .then(response => response.json())
+                .then(data => {
+                    nodeIds = data.nodeIds;
+                    connectionMatrix = data.connectionMatrix;
+                    nodeMetadata = data.nodeMetadata;
+                    ({ nodes, transaction } = createVisualization());
+                    currentNode = nodes[0];
+                    transaction.attr("cx", currentNode.x).attr("cy", currentNode.y);
+                    updateButtons();
+                    updateMetadataDisplay(currentNode.id);
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                });
+        }
+
     </script>
 </body>
 </html>

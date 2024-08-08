@@ -69,14 +69,24 @@
         }
     </style>
 </head>
-<body>
-    <div id="Title">
+<body onload="onLoadPopulateNodesFromURl()">
+    <div id="Title", style="padding-left: 10px; padding-right: 10px;">
         <h1>Preconfirmations</h1>
     </div>
-    <div id="SubTitle">
-        <h2>The setting</h2>
-    <div id="Description">
-        <p>Click on the "Up", "Down", "Previous", and "Next" buttons to navigate through the Ethereum transaction lifecycle.</p>
+    <div id="Subtitle", style="padding-left: 10px; padding-right: 10px;">
+        <h2>The Setting</h2>
+    </div>
+    <div id="Content", style="padding-left: 10px; padding-right: 10px;">
+<p>Preconfirmations insert a new stage to this progression of confidence, between submission and inclusion.</p>
+
+<p>It does this by enabling parties involved in the transaction lifecyle to provide a stake-backed promise that the transaction will be included within a stupulated time, or even included with the surety of a specific
+post-inclusion state (the ENS is succesfully registered, or the Uniswap transaction is placed at the top of the block, for example). We will get to who these parties are, both on the supply/submission
+and demand/preconfirmation side in due course. The parties providing the preconfirmations will henceforth be called <strong>preconfers</strong>.</p>
+
+<p>So from a user's perspective, a transaction now goes through the following stages: Submission > <strong>Preconfirmation</strong> > Inclusion > Finalization </p>
+
+<p>These preconfirmations can be provided at a much smaller interval than the 12 seconds per slot, depending on the specific design of the preconfirmation supply chain.</p>
+<span style="float: right;"><a href="1.html"> &lt;&lt;prev&lt;&lt; </a>&nbsp;<a href="3.html"> >>Next>> </a></span>
     </div>
     <div id="visualization"></div>
     <div id="controls">
@@ -236,8 +246,9 @@
                         <textarea id="content" name="content" placeholder="Content">${metadata.content}</textarea>
                         <input type="url" id="url" name="url" value="${metadata.url}" placeholder="URL">
                         <button type="button" onclick="saveMetadata('${nodeId}')">Save</button>
-                        <button type="button" onclick="resetMetadata('${nodeId}')">Reset</button>
                         <button type="button" onclick="deleteNode('${nodeId}')">Delete</button>
+                        <button type="button" onclick="uploadNodeData()">Upload</button>
+                        <button type="button" onclick="downloadNodeData()">Download</button>
                     </form>`;
             } else {
                 html += `<p>${metadata.content}</p>`;
@@ -404,6 +415,77 @@
             updateButtons();
             updateMetadataDisplay(currentNode.id);
         }
+
+        function downloadNodeData() {
+            const data = {
+                nodeIds: nodeIds,
+                connectionMatrix: connectionMatrix,
+                nodeMetadata: nodeMetadata
+            };
+            const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "preconfirmations.json";
+            a.click();
+        }
+
+        function uploadNodeData() {
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = ".json";
+            input.onchange = e => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = e => {
+                    const data = JSON.parse(e.target.result);
+                    nodeIds = data.nodeIds;
+                    connectionMatrix = data.connectionMatrix;
+                    nodeMetadata = data.nodeMetadata;
+                    ({ nodes, transaction } = createVisualization());
+                    currentNode = nodes[0];
+                    transaction.attr("cx", currentNode.x).attr("cy", currentNode.y);
+                    updateButtons();
+                    updateMetadataDisplay(currentNode.id);
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        function downloadNodeData() {
+            const data = {
+                nodeIds: nodeIds,
+                connectionMatrix: connectionMatrix,
+                nodeMetadata: nodeMetadata
+            };
+            const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "preconfirmations.json";
+            a.click();
+        }
+
+        function onLoadPopulateNodesFromURl() {
+            //Fetch json file from relative URL, check if it exists, if so populate the nodes
+            fetch('2.json')
+                .then(response => response.json())
+                .then(data => {
+                    nodeIds = data.nodeIds;
+                    connectionMatrix = data.connectionMatrix;
+                    nodeMetadata = data.nodeMetadata;
+                    ({ nodes, transaction } = createVisualization());
+                    currentNode = nodes[0];
+                    transaction.attr("cx", currentNode.x).attr("cy", currentNode.y);
+                    updateButtons();
+                    updateMetadataDisplay(currentNode.id);
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                });
+        }
+
     </script>
 </body>
 </html>

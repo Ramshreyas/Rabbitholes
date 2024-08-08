@@ -17,6 +17,7 @@
         #visualization { 
             width: 100%; 
             height: 100%; 
+            overflow: scroll;
         }
         #controls { 
             position: fixed;
@@ -69,14 +70,23 @@
         }
     </style>
 </head>
-<body>
-    <div id="Title">
+<body onload="onLoadPopulateNodesFromURl()">
+    <div id="Title", style="padding-left: 10px; padding-right: 10px;">
         <h1>Preconfirmations</h1>
     </div>
-    <div id="SubTitle">
-        <h2>The setting</h2>
-    <div id="Description">
-        <p>Click on the "Up", "Down", "Previous", and "Next" buttons to navigate through the Ethereum transaction lifecycle.</p>
+    <div id="Subtitle", style="padding-left: 10px; padding-right: 10px;">
+        <h2>The Setting</h2>
+    </div>
+    <div id="Content", style="padding-left: 10px; padding-right: 10px;">
+<p>
+There are many parties who are involved in the flow of a transaction from submission to finalization, including actors
+in the <a href="https://blog.hack.vc/content/images/2024/03/Screenshot-2024-03-06-at-9.29.39-AM.png">MEV supply chain</a>,
+who account for up to <a href="https://blockworks.co/news/blocknative-drops-mev-boost">93% of all Ethereum transactions</a>.
+</p>
+
+<p>Any of these parties can provide potentially provide preconfirmations to parties to their 'left', or seek 
+preconfirmations from parties to their 'right':</p>
+<span style="float: right;"><a href="2.html"> &lt;&lt;prev&lt;&lt; </a>&nbsp;<a href="4.html"> >>Next>> </a></span>
     </div>
     <div id="visualization"></div>
     <div id="controls">
@@ -236,8 +246,9 @@
                         <textarea id="content" name="content" placeholder="Content">${metadata.content}</textarea>
                         <input type="url" id="url" name="url" value="${metadata.url}" placeholder="URL">
                         <button type="button" onclick="saveMetadata('${nodeId}')">Save</button>
-                        <button type="button" onclick="resetMetadata('${nodeId}')">Reset</button>
                         <button type="button" onclick="deleteNode('${nodeId}')">Delete</button>
+                        <button type="button" onclick="uploadNodeData()">Upload</button>
+                        <button type="button" onclick="downloadNodeData()">Download</button>
                     </form>`;
             } else {
                 html += `<p>${metadata.content}</p>`;
@@ -404,6 +415,77 @@
             updateButtons();
             updateMetadataDisplay(currentNode.id);
         }
+
+        function downloadNodeData() {
+            const data = {
+                nodeIds: nodeIds,
+                connectionMatrix: connectionMatrix,
+                nodeMetadata: nodeMetadata
+            };
+            const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "preconfirmations.json";
+            a.click();
+        }
+
+        function uploadNodeData() {
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = ".json";
+            input.onchange = e => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = e => {
+                    const data = JSON.parse(e.target.result);
+                    nodeIds = data.nodeIds;
+                    connectionMatrix = data.connectionMatrix;
+                    nodeMetadata = data.nodeMetadata;
+                    ({ nodes, transaction } = createVisualization());
+                    currentNode = nodes[0];
+                    transaction.attr("cx", currentNode.x).attr("cy", currentNode.y);
+                    updateButtons();
+                    updateMetadataDisplay(currentNode.id);
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        function downloadNodeData() {
+            const data = {
+                nodeIds: nodeIds,
+                connectionMatrix: connectionMatrix,
+                nodeMetadata: nodeMetadata
+            };
+            const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "preconfirmations.json";
+            a.click();
+        }
+
+        function onLoadPopulateNodesFromURl() {
+            //Fetch json file from relative URL, check if it exists, if so populate the nodes
+            fetch('3.json')
+                .then(response => response.json())
+                .then(data => {
+                    nodeIds = data.nodeIds;
+                    connectionMatrix = data.connectionMatrix;
+                    nodeMetadata = data.nodeMetadata;
+                    ({ nodes, transaction } = createVisualization());
+                    currentNode = nodes[0];
+                    transaction.attr("cx", currentNode.x).attr("cy", currentNode.y);
+                    updateButtons();
+                    updateMetadataDisplay(currentNode.id);
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                });
+        }
+
     </script>
 </body>
 </html>
