@@ -140,8 +140,8 @@
 
             let nodes = nodeIds.map(id => ({
                 id: id,
-                x: (gridPositions[id][0]) * gridSize,
-                y: (gridPositions[id][1]) * gridSize
+                x: (gridPositions[id][0] + 1) * gridSize,
+                y: (gridPositions[id][1] + 2) * gridSize
             }));
 
             const links = [];
