@@ -77,27 +77,6 @@
     </style>
 </head>
 <body onload="onLoadPopulateNodesFromURl()">
-    <div id="Title", style="padding-left: 10px; padding-right: 10px;">
-        <h1>Preconfirmations</h1>
-    </div>
-    <div id="Subtitle", style="padding-left: 10px; padding-right: 10px;">
-        <h2>The Parties: Who are the Preconfers?</h2>
-    </div>
-    <div id="Content", style="padding-left: 10px; padding-right: 10px;">
-<p>
-There are many parties who are involved in the flow of a transaction from submission to finalization, including actors
-in the <a href="https://blog.hack.vc/content/images/2024/03/Screenshot-2024-03-06-at-9.29.39-AM.png">MEV supply chain</a>,
-who account for up to <a href="https://blockworks.co/news/blocknative-drops-mev-boost">93% of all Ethereum transactions</a>.
-</p>
-
-<p>Any of these parties can provide potentially provide preconfirmations to parties to their 'left', or seek 
-preconfirmations from parties to their 'right':</p>
-
-<p>So, for example, a searcher might request a preconfirmation from a builder, and a builder from a relay, 
-or even a relay from a block proposer. However, the majority of the demand is probably going to come from 
-private orderflow from wallet apps, trading firms or other sophisticated participants, to builders.</p>
-<span style="float: right;"><a href="2.html"> &lt;&lt;prev&lt;&lt; </a>&nbsp;<a href="4.html"> >>Next>> </a></span>
-    </div>
     <div id="visualization-container">
         <div id="visualization"></div>
     </div>
@@ -108,17 +87,6 @@ private orderflow from wallet apps, trading firms or other sophisticated partici
         <button id="downBtn" class="control-button">Down</button>
     </div>
     <div id="metadata"></div>
-    <div id="addNodeForm">
-        <h3>Add New Node</h3>
-        <input type="text" id="newNodeName" placeholder="Node Name">
-        <select id="newNodeDirection">
-            <option value="next">Next</option>
-            <option value="up">Up</option>
-            <option value="down">Down</option>
-        </select>
-        <button onclick="addNewNode()">Add Node</button>
-    </div>
-    <button id="editToggle" onclick="toggleEditMode()">Edit Mode</button>
 
     <script>
         let nodeIds = ["User"];
@@ -268,53 +236,6 @@ private orderflow from wallet apps, trading firms or other sophisticated partici
             document.getElementById("metadata").innerHTML = html;
         }
 
-        function saveMetadata(oldNodeId) {
-            const newNodeId = document.getElementById("nodeNameInput").value;
-            const content = document.getElementById("content").value;
-            const url = document.getElementById("url").value;
-            
-            const newMetadata = {
-                content: content,
-                url: url
-            };
-
-            if (oldNodeId !== newNodeId) {
-                nodeMetadata[newNodeId] = newMetadata;
-                delete nodeMetadata[oldNodeId];
-                nodeIds = nodeIds.map(id => id === oldNodeId ? newNodeId : id);
-                
-                // Update connectionMatrix
-                connectionMatrix[newNodeId] = connectionMatrix[oldNodeId];
-                delete connectionMatrix[oldNodeId];
-                for (let node in connectionMatrix) {
-                    if (connectionMatrix[node][oldNodeId]) {
-                        connectionMatrix[node][newNodeId] = connectionMatrix[node][oldNodeId];
-                        delete connectionMatrix[node][oldNodeId];
-                    }
-                }
-
-                currentNode = { id: newNodeId, x: currentNode.x, y: currentNode.y };
-                //Update the nodes object
-                nodes = nodes.map(n => n.id === oldNodeId ? currentNode : n);
-                console.log(nodes);
-            } else {
-                nodeMetadata[newNodeId] = newMetadata;
-            }
-
-            ({ nodes, transaction } = createVisualization());
-            transaction.attr("cx", currentNode.x).attr("cy", currentNode.y);
-            updateButtons();
-            updateMetadataDisplay(newNodeId);
-        }
-
-        function resetMetadata(nodeId) {
-            nodeMetadata[nodeId] = {
-                "content": "",
-                "url": ""
-            };
-            updateMetadataDisplay(nodeId);
-        }
-
         function moveTransaction(direction) {
             for (let targetId in connectionMatrix[currentNode.id]) {
                 const connection = connectionMatrix[currentNode.id][targetId];
@@ -349,49 +270,6 @@ private orderflow from wallet apps, trading firms or other sophisticated partici
             }
         }
 
-        function toggleEditMode() {
-            isEditMode = !isEditMode;
-            updateMetadataDisplay(currentNode.id);
-            document.getElementById("editToggle").textContent = isEditMode ? "View Mode" : "Edit Mode";
-            document.getElementById("addNodeForm").style.display = isEditMode ? "block" : "none";
-        }
-
-        function addNewNode() {
-            const newNodeName = document.getElementById("newNodeName").value;
-            const direction = document.getElementById("newNodeDirection").value;
-            
-            if (!newNodeName || nodeIds.includes(newNodeName)) {
-                alert("Please enter a unique node name.");
-                return;
-            }
-
-            nodeIds.push(newNodeName);
-            connectionMatrix[newNodeName] = {};
-            nodeMetadata[newNodeName] = {
-                "content": "",
-                "url": ""
-            };
-
-            connectionMatrix[currentNode.id][newNodeName] = [direction, directionToGridDelta[direction]];
-            const oppositeDirection = direction === "next" ? "previous" : (direction === "up" ? "down" : "up");
-            connectionMatrix[newNodeName][currentNode.id] = [oppositeDirection, directionToGridDelta[oppositeDirection]];
-
-            ({ nodes, transaction } = createVisualization());
-            
-            // Move the transaction to the new node
-            currentNode = nodes.find(n => n.id === newNodeName);
-            transaction.transition()
-                .duration(500)
-                .attr("cx", currentNode.x)
-                .attr("cy", currentNode.y);
-
-            updateButtons();
-            updateMetadataDisplay(currentNode.id);
-
-            // Clear the input field
-            document.getElementById("newNodeName").value = "";
-        }
-
         d3.select("#upBtn").on("click", () => moveTransaction("up"));
         d3.select("#downBtn").on("click", () => moveTransaction("down"));
         d3.select("#leftBtn").on("click", () => moveTransaction("previous"));
@@ -408,81 +286,33 @@ private orderflow from wallet apps, trading firms or other sophisticated partici
             updateMetadataDisplay(currentNode.id);
         });
 
-        function deleteNode(nodeId) {
-            if (nodeId === "User") {
-                alert("Cannot delete the initial node.");
+        // Function to get URL parameters
+        function getUrlParameter(name) {
+            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+            const regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+            const results = regex.exec(location.search);
+            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+        }
+
+        // Function to populate nodes from a file name in the URL parameter
+        function onLoadPopulateNodesFromURl() {
+            const fileName = getUrlParameter('dataFile');
+            if (!fileName) {
+                console.error('No dataFile parameter found in the URL.');
                 return;
             }
 
-            delete nodeMetadata[nodeId];
-            delete connectionMatrix[nodeId];
-            nodeIds = nodeIds.filter(id => id !== nodeId);
-            for (let node in connectionMatrix) {
-                delete connectionMatrix[node][nodeId];
-            }
+            // Construct the full URL for the JSON file
+            const baseUrl = 'http://localhost:8888/'; // Replace with your actual base URL
+            const dataUrl = baseUrl + fileName;
 
-            ({ nodes, transaction } = createVisualization());
-            currentNode = nodes[0];
-            transaction.attr("cx", currentNode.x).attr("cy", currentNode.y);
-            updateButtons();
-            updateMetadataDisplay(currentNode.id);
-        }
-
-        function downloadNodeData() {
-            const data = {
-                nodeIds: nodeIds,
-                connectionMatrix: connectionMatrix,
-                nodeMetadata: nodeMetadata
-            };
-            const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "preconfirmations.json";
-            a.click();
-        }
-
-        function uploadNodeData() {
-            const input = document.createElement("input");
-            input.type = "file";
-            input.accept = ".json";
-            input.onchange = e => {
-                const file = e.target.files[0];
-                const reader = new FileReader();
-                reader.onload = e => {
-                    const data = JSON.parse(e.target.result);
-                    nodeIds = data.nodeIds;
-                    connectionMatrix = data.connectionMatrix;
-                    nodeMetadata = data.nodeMetadata;
-                    ({ nodes, transaction } = createVisualization());
-                    currentNode = nodes[0];
-                    transaction.attr("cx", currentNode.x).attr("cy", currentNode.y);
-                    updateButtons();
-                    updateMetadataDisplay(currentNode.id);
-                };
-                reader.readAsText(file);
-            };
-            input.click();
-        }
-
-        function downloadNodeData() {
-            const data = {
-                nodeIds: nodeIds,
-                connectionMatrix: connectionMatrix,
-                nodeMetadata: nodeMetadata
-            };
-            const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "preconfirmations.json";
-            a.click();
-        }
-
-        function onLoadPopulateNodesFromURl() {
-            //Fetch json file from relative URL, check if it exists, if so populate the nodes
-            fetch('3.json')
-                .then(response => response.json())
+            fetch(dataUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     nodeIds = data.nodeIds;
                     connectionMatrix = data.connectionMatrix;
@@ -494,7 +324,7 @@ private orderflow from wallet apps, trading firms or other sophisticated partici
                     updateMetadataDisplay(currentNode.id);
                 })
                 .catch((error) => {
-                    console.error('Error:', error);
+                    console.error('Error fetching node data:', error);
                 });
         }
 

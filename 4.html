@@ -96,7 +96,7 @@ preconfirmations from parties to their 'right':</p>
 <p>So, for example, a searcher might request a preconfirmation from a builder, and a builder from a relay, 
 or even a relay from a block proposer. However, the majority of the demand is probably going to come from 
 private orderflow from wallet apps, trading firms or other sophisticated participants, to builders.</p>
-<span style="float: right;"><a href="2.html"> &lt;&lt;prev&lt;&lt; </a>&nbsp;<a href="4.html"> >>Next>> </a></span>
+<span style="float: right;"><a href="3.html"> &lt;&lt;prev&lt;&lt; </a>&nbsp;<a href="5.html"> >>Next>> </a></span>
     </div>
     <div id="visualization-container">
         <div id="visualization"></div>
@@ -438,7 +438,7 @@ private orderflow from wallet apps, trading firms or other sophisticated partici
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = "preconfirmations.json";
+            a.download = "nodedata.json";
             a.click();
         }
 
@@ -463,20 +463,6 @@ private orderflow from wallet apps, trading firms or other sophisticated partici
                 reader.readAsText(file);
             };
             input.click();
-        }
-
-        function downloadNodeData() {
-            const data = {
-                nodeIds: nodeIds,
-                connectionMatrix: connectionMatrix,
-                nodeMetadata: nodeMetadata
-            };
-            const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "preconfirmations.json";
-            a.click();
         }
 
         function onLoadPopulateNodesFromURl() {
