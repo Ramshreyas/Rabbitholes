@@ -14,7 +14,7 @@ Welcome to the Ethereum Transaction Lifecycle Visualizer. This page provides an 
 
 ## Visualization
 
-<iframe src="https://ramshreyas.github.io/Rabbitholes/snippet.html?dataFile=4.json" width="100%" height="600px" frameborder="0" allowfullscreen></iframe>
+<iframe src="https://ramshreyas.github.io/Rabbitholes/snippet.html?dataFile=4.json" width="100%" height="800px" frameborder="0" allowfullscreen></iframe>
 
 ## Additional Resources
 
