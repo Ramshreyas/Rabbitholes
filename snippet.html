@@ -302,9 +302,8 @@
                 return;
             }
 
-            // Construct the full URL for the JSON file
-            const baseUrl = 'http://localhost:8888/'; // Replace with your actual base URL
-            const dataUrl = baseUrl + fileName;
+            // Construct the relative URL for the JSON file
+            const dataUrl = `./${fileName}`;
 
             fetch(dataUrl)
                 .then(response => {
