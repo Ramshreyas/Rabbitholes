@@ -145,7 +145,7 @@
             const { gridPositions, minX, maxX, minY, maxY } = assignGridPositions(nodeIds[0]);
 
             // Calculate grid size based on the width and number of horizontal steps
-            const horizontalSteps = maxX - minX + 1;
+            const horizontalSteps = maxX - minX;
             const verticalSteps = maxY - minY + 1;
             const gridSizeX = width / (horizontalSteps + 1);  // Adjust for margin
             const gridSizeY = height / (verticalSteps + 1);   // Adjust for margin
