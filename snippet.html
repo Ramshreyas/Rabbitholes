@@ -109,11 +109,19 @@
             const queue = [[startNode, 0, 0]];
             const visited = new Set();
 
+            let minX = 0, maxX = 0, minY = 0, maxY = 0;
+
             while (queue.length > 0) {
                 const [node, x, y] = queue.shift();
                 if (visited.has(node)) continue;
                 visited.add(node);
                 gridPositions[node] = [x, y];
+
+                // Track the min and max values to calculate the grid's extent
+                minX = Math.min(minX, x);
+                maxX = Math.max(maxX, x);
+                minY = Math.min(minY, y);
+                maxY = Math.max(maxY, y);
 
                 for (let neighbor in connectionMatrix[node]) {
                     const connection = connectionMatrix[node][neighbor];
@@ -124,24 +132,40 @@
                 }
             }
 
-            return gridPositions;
+            // Return the grid positions along with min and max extents
+            return { gridPositions, minX, maxX, minY, maxY };
         }
 
         function createVisualization() {
             const width = window.innerWidth;
             const height = window.innerHeight;
-            const nodeRadius = Math.min(width, height) * 0.05;
-            const transactionRadius = nodeRadius * 0.3;
-            const gridSize = Math.min(width, height) * 0.2;
 
             d3.select("#visualization").selectAll("*").remove();
 
-            const gridPositions = assignGridPositions(nodeIds[0]);
+            const { gridPositions, minX, maxX, minY, maxY } = assignGridPositions(nodeIds[0]);
+
+            // Calculate grid size based on the width and number of horizontal steps
+            const horizontalSteps = maxX - minX + 1;
+            const verticalSteps = maxY - minY + 1;
+            const gridSizeX = width / (horizontalSteps + 1);  // Adjust for margin
+            const gridSizeY = height / (verticalSteps + 1);   // Adjust for margin
+
+            // Use the smaller grid size to maintain aspect ratio
+            const gridSize = Math.min(gridSizeX, gridSizeY);
+
+            // Calculate node and text sizes based on grid size
+            const nodeRadius = gridSize * 0.3;  // Node radius as a fraction of grid size
+            const transactionRadius = nodeRadius * 0.6; // Adjust transaction size
+            const fontSize = nodeRadius * 0.3;  // Font size as a fraction of node radius
+
+            // Center the grid within the SVG
+            const offsetX = (width - (horizontalSteps * gridSize)) / 2;
+            const offsetY = (height - (verticalSteps * gridSize)) / 2;
 
             let nodes = nodeIds.map(id => ({
                 id: id,
-                x: (gridPositions[id][0] + 0.5) * gridSize,
-                y: (gridPositions[id][1] + 0.5) * gridSize
+                x: offsetX + (gridPositions[id][0] - minX) * gridSize,
+                y: offsetY + (gridPositions[id][1] - minY) * gridSize
             }));
 
             const links = [];
@@ -159,7 +183,7 @@
 
             const svg = d3.select("#visualization")
                 .append("svg")
-                .attr("width", width - nodeRadius)
+                .attr("width", width)
                 .attr("height", height);
 
             const link = svg.append("g")
@@ -187,7 +211,7 @@
                 .data(nodes)
                 .join("text")
                 .text(d => d.id)
-                .attr("font-size", nodeRadius * 0.3)
+                .attr("font-size", fontSize)
                 .attr("text-anchor", "middle")
                 .attr("dominant-baseline", "central")
                 .attr("x", d => d.x)
