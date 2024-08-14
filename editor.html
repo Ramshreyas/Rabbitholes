@@ -467,7 +467,7 @@ private orderflow from wallet apps, trading firms or other sophisticated partici
 
         function onLoadPopulateNodesFromURl() {
             //Fetch json file from relative URL, check if it exists, if so populate the nodes
-            fetch('1.json')
+            fetch('start.json')
                 .then(response => response.json())
                 .then(data => {
                     nodeIds = data.nodeIds;
